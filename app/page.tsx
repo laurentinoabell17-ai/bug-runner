@@ -1,69 +1,156 @@
-import Image from "next/image";
+'use client';
+
+import React, { useState, useEffect, useRef } from 'react';
 
 export default function Home() {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [score, setScore] = useState(0);
+  const [highScore, setHighScore] = useState(0);
+  const [gameOver, setGameOver] = useState(false);
+
+  const playerRef = useRef({ y: 0, vy: 0, isJumping: false });
+  const [playerY, setPlayerY] = useState(0);
+  const [bugX, setBugX] = useState(600);
+  const animationFrameId = useRef<number | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        jump();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isPlaying, gameOver]);
+
+  const jump = () => {
+    if (!isPlaying && !gameOver) {
+      startGame();
+      return;
+    }
+    if (!playerRef.current.isJumping && isPlaying) {
+      playerRef.current.vy = -12;
+      playerRef.current.isJumping = true;
+    }
+  };
+
+  const startGame = () => {
+    setIsPlaying(true);
+    setGameOver(false);
+    setScore(0);
+    setBugX(600);
+    playerRef.current = { y: 0, vy: 0, isJumping: false };
+    setPlayerY(0);
+  };
+
+  useEffect(() => {
+    if (!isPlaying) return;
+
+    let currentBugX = 600;
+    let currentScore = 0;
+
+    const updateGame = () => {
+      playerRef.current.vy += 0.6;
+      playerRef.current.y += playerRef.current.vy;
+
+      if (playerRef.current.y > 0) {
+        playerRef.current.y = 0;
+        playerRef.current.vy = 0;
+        playerRef.current.isJumping = false;
+      }
+      setPlayerY(playerRef.current.y);
+
+      currentBugX -= 7;
+      if (currentBugX < -40) {
+        currentBugX = 600;
+        currentScore += 10;
+        setScore(currentScore);
+      }
+      setBugX(currentBugX);
+
+      if (currentBugX > 40 && currentBugX < 90 && playerRef.current.y > -25) {
+        setIsPlaying(false);
+        setGameOver(true);
+        if (currentScore > highScore) {
+          setHighScore(currentScore);
+        }
+        return;
+      }
+
+      animationFrameId.current = requestAnimationFrame(updateGame);
+    };
+
+    animationFrameId.current = requestAnimationFrame(updateGame);
+
+    return () => {
+      if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
+    };
+  }, [isPlaying, highScore]);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="flex flex-col items-center justify-center min-h-screen bg-slate-950 text-white p-6 font-sans">
+      <div className="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl">
+        <div className="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
+          <div>
+            <h1 className="text-2xl font-bold text-emerald-400">🐛 Bug Runner</h1>
+            <p className="text-sm text-slate-400">Projeto independente - Salte os erros de sistema!</p>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="flex justify-between mb-4 font-mono text-sm">
+          <span className="bg-slate-800 px-3 py-1 rounded text-emerald-400">Score: {score}</span>
+          <span className="bg-slate-800 px-3 py-1 rounded text-amber-400">Recorde: {highScore}</span>
         </div>
-      </main>
-    </div>
+
+        <div 
+          onClick={jump}
+          className="relative w-full h-64 bg-slate-950 border-2 border-slate-700 rounded-lg overflow-hidden cursor-pointer flex items-end shadow-inner select-none"
+        >
+          <div className="absolute bottom-0 w-full h-2 bg-emerald-500"></div>
+
+          <div 
+            style={{ bottom: `${Math.abs(playerY) + 8}px` }}
+            className="absolute left-12 w-10 h-10 bg-indigo-500 rounded flex items-center justify-center text-xl shadow-lg transition-transform"
+          >
+            💻
+          </div>
+
+          <div 
+            style={{ left: `${bugX}px` }}
+            className="absolute bottom-2 w-8 h-8 bg-rose-600 rounded flex items-center justify-center text-lg animate-pulse"
+          >
+            🐞
+          </div>
+
+          {!isPlaying && !gameOver && (
+            <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-center p-4">
+              <p className="text-lg font-bold mb-2">Pressione <span className="text-emerald-400">ESPAÇO</span> ou <span className="text-emerald-400">CLIQUE</span> para começar</p>
+              <button className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 font-bold rounded-lg shadow transition">
+                Iniciar Jogo 🚀
+              </button>
+            </div>
+          )}
+
+          {gameOver && (
+            <div className="absolute inset-0 bg-rose-950/80 flex flex-col items-center justify-center text-center p-4">
+              <h2 className="text-2xl font-bold text-rose-400 mb-1">💥 Bug crítico encontrado!</h2>
+              <p className="text-sm text-slate-300 mb-4">Pontuação final: <span className="font-bold text-white">{score}</span></p>
+              <button className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 font-bold rounded-lg shadow transition">
+                Tentar Novamente 🔄
+              </button>
+            </div>
+          )}
+        </div>
+        
+        <p className="text-xs text-center text-slate-500 mt-4">
+          Dica: Use a tecla <kbd className="bg-slate-800 px-2 py-1 rounded text-slate-300">Espaço</kbd> para saltar.
+        </p>
+      </div>
+
+      <footer className="mt-8 text-xs text-slate-500">
+        © 2026 Todos os direitos reservados a Laurentino.
+      </footer>
+    </main>
   );
 }
